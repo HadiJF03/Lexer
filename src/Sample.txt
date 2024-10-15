@@ -1,0 +1,7 @@
+int x = 10;
+float y = 3.5;
+string name = "John";
+if (x < y) {
+x = x + 5;
+}
+name = 5;
