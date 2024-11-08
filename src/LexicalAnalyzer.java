@@ -10,7 +10,7 @@ public class LexicalAnalyzer {
 
     // Define sets for different token categories
     private static final Set<String> KEYWORDS = Set.of("if", "else", "return", "int", "float", "string", "boolean");
-    private static final Set<String> OPERATORS = Set.of("==", "!=", ">", "<");
+    private static final Set<String> OPERATORS = Set.of("==", "!=", ">", "<","=");
     private static final Set<String> ARITHMETIC_OPERATORS = Set.of("+", "-", "*", "/");
     private static final Set<String> SEPARATORS = Set.of("(", ")", "{", "}", ",", ";");
 
@@ -24,6 +24,10 @@ public class LexicalAnalyzer {
 
     // Define a map to store variable types for type checking
     private Map<String, String> symbolTable = new HashMap<>();
+
+    // Variables to track the block of a multi-line if statement
+    private boolean inIfBlock = false;
+    private int braceCount = 0;
 
     // Analyze the input code line by line
     public void analyze(String filePath) {
@@ -39,7 +43,40 @@ public class LexicalAnalyzer {
         line = line.trim();
         if (line.isEmpty()) return;  // Skip empty lines
 
-        // Analyze the line and handle variable declarations and assignments
+        // Handle multi-line if blocks
+        if (line.startsWith("if (") && line.endsWith("{")) {
+            inIfBlock = true;
+            braceCount = 1;
+            System.out.println("('if', 'KEYWORD')");
+            processTokens(line.substring(line.indexOf('(') + 1, line.lastIndexOf(')')).trim());
+            System.out.println("('{', 'SEPARATOR')");
+            return;
+        }
+
+        // If in an if block, continue processing until closing brace
+        if (inIfBlock) {
+            // Increment brace count for nested blocks
+            if (line.contains("{")) braceCount++;
+            if (line.contains("}")) braceCount--;
+
+            // Process the line inside the if block
+            processTokens(line);
+
+            // End of if block
+            if (braceCount == 0) {
+                inIfBlock = false;
+                System.out.println("('}', 'SEPARATOR')");
+            }
+            return;
+        }
+
+        // Check for missing semicolon if it's a regular line (not starting with `if` and not ending with `{` or `}`)
+        if (!line.endsWith(";") && !line.endsWith("{") && !line.endsWith("}") && !line.startsWith("if")) {
+            System.out.println("Error: Missing semicolon at the end of the line: " + line);
+            return;
+        }
+
+        // Process regular statements
         if (analyzeStatement(line)) {
             if (line.endsWith(";")) {
                 System.out.println("(';', 'SEPARATOR')");
@@ -186,7 +223,7 @@ public class LexicalAnalyzer {
             printToken(token, "KEYWORD");
         } else if (ARITHMETIC_OPERATORS.contains(token)) {
             printToken(token, "ARITHMETIC_OPERATOR");
-        } else if (OPERATORS.contains(token)) {
+        } else if (OPERATORS.contains(token) ) {
             printToken(token, "OPERATOR");
         } else if (SEPARATORS.contains(token)) {
             printToken(token, "SEPARATOR");
